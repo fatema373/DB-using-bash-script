@@ -1,0 +1,104 @@
+#!/bin/bash
+
+
+clear
+cd "$db_directory/$name"
+
+# Function to drop a specific column from a line
+drop_column() {
+    line=$1
+    field_number=$2
+   echo "$line" | awk -F: -v col="$field_number" '{
+        split($0, fields, ":");
+        for (i = 1; i <= NF; i++) {
+            if (i != col) {
+                printf "%s", fields[i];
+                if (i < NF && fields[i+1] != "") {
+                    printf ":";
+                }
+            }
+        }
+        printf "\n";
+    }' | sed 's/::/:/g'	
+    
+}
+
+
+# Initialize boolean variables
+boolean_condition=true
+table_choice=true
+
+while $boolean_condition; do
+    
+    awk '{print NR,"==>",$0}' tables_name
+    read -p "Choose the number of the table to drop from: " table_num
+
+    number_of_tables=$(wc -l < "tables_name")
+
+    if [[ $table_num -gt $number_of_tables || $table_num -le 0 && $table_choice == true ]]; then
+        echo "Not a valid choice, try again."
+        continue
+    fi
+    table_choice=false
+    table=$(sed -n "${table_num}p" tables_name)
+    data="data_"
+    meta="metadata_"
+    input_file="${data}${table}"
+    meta_file="${meta}${table}"
+	counter=0
+    	while IFS= read -r line; do
+	    column=$(echo "$line" | cut -d: -f1)
+	    
+
+	    # Check if the extracted field is not empty
+	    if [[ -n $column ]]; then
+		((counter++))
+		echo "$counter) $column"
+	    fi
+	    
+	done < <(sed 1d "$meta_file")
+	
+    read -p "Enter the number of the column to remove: " column_to_remove
+    if [ "$column_to_remove" -eq 1 ]; then
+        echo  "It's a primary key column, so I couldn't drop it. Violates database constraints."
+    elif [ "$column_to_remove" -le $counter ] && [ "$column_to_remove" -gt 0 ]; then #make sure it's a number
+		
+        index=$((column_to_remove-1))
+        touch newdata
+        while IFS= read -r line; do
+            modified_line=$(drop_column "$line" "$column_to_remove")
+	    if [[ "${modified_line: -1}" == ":" ]]; then
+           	 modified_line="${modified_line%:}"
+	    fi
+            echo "$modified_line" >> newdata
+        done < "$input_file"
+
+        mv newdata $input_file
+	((column_to_remove=$column_to_remove+1))
+	sed -i "${column_to_remove}d" $meta_file
+
+        
+        boolean_condition=false
+	
+
+	
+	while true; do
+		echo "you want to return to DB list or Tables list: "
+		select options in "DB" "Tables"
+		do 
+			case $options in
+				"DB")
+					. database
+				;;
+				"Tables")
+					. newtable
+				;;	
+			esac		
+		done
+	done
+    else
+        echo "Unexpected input, try again."
+    fi
+   
+done
+

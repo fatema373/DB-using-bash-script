@@ -1,0 +1,23 @@
+#!/usr/bin/bash
+clear
+directory="$db_directory/$name"
+cd $directory
+
+awk '{print NR,"==>",$0}' tables_name #file contains tables' names of DB
+read -p "choose number of table to be dropped " table_num
+number_of_tables=$(wc -l < "tables_name")
+if [[ $table_num -gt $number_of_tables || $table_num -le 0 ]]; then
+	echo "not a valid choice"
+else
+	table_name=`sed -n "${table_num}p" tables_name` # variable contains specific table's name to be dropped
+	data="data_${table_name}"
+	metadata="metadata_${table_name}"
+	rm $data
+	rm $metadata
+	sed -i "${table_num}d" tables_name
+fi
+
+
+
+
+ 

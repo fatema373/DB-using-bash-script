@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# columns and types from metadata ,skip the first line cause it's the names of columns
+while IFS= read -r line; do
+    column=$(echo "$line" | cut -d: -f1)
+    type=$(echo "$line" | cut -d: -f2)
+
+    # Check if the extracted field is not empty
+    if [[ -n $column ]]; then
+        columns+=($column)
+    fi
+    if [[ -n $type ]]; then
+        types+=($type)
+    fi
+done < <(sed 1d "$meta_file")

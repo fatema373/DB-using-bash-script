@@ -1,0 +1,81 @@
+#!/bin/bash
+
+cd "$db_directory/$name"
+
+clear
+
+while true; do
+    back_to_menu=false
+
+    while true; do
+        awk '{print NR,"==>",$0}' tables_name
+        read -p "Choose the number of the table to select from: " table_num
+        number_of_tables=$(wc -l < "tables_name")
+
+        if [[ $table_num -gt $number_of_tables || $table_num -le 0 ]]; then
+            echo "Not a valid choice, try again."
+            continue
+        else
+            table=$(sed -n "${table_num}p" tables_name)
+            data="data_${table}"
+            meta="metadata_${table}"
+            columns=()
+            types=()
+
+            # Source the metaAndData script
+            if [ -f metaAndData ]; then
+                . metaAndData
+            else
+                echo "Error: metaAndData script not found!"
+                exit 1
+            fi
+
+            select options in "Select All" "Select row by column" "Select column" "Back"; do
+                case $options in
+                    "Select All")
+                        cat "$data"
+                        ;;
+                    "Select row by column")
+                        echo "Select row by column"
+                        echo "Choose column:"
+                        . displayColumns
+                        read -p "Enter your choice: " column_num
+
+                        if [[ $column_num -gt ${#columns[@]} || $column_num -le 0 ]]; then
+                            echo "Not a valid choice, try again."
+                        else
+                            column_name="${columns[$((column_num-1))]}"
+                            read -p "$column_name: " input
+                            awk -F: -v col_num="$column_num" -v input="$input" '$col_num == input {print $0}' "$data"
+                        fi
+                        ;;
+                    "Select column")
+                        echo "Select column"
+                        echo "Choose column:"
+                        . displayColumns
+                        read -p "Enter your choice: " column_num
+
+                        if [[ $column_num -gt ${#columns[@]} || $column_num -le 0 ]]; then
+                            echo "Not a valid choice, try again."
+                        else
+                            column_name="${columns[$((column_num-1))]}"
+                            awk -F: -v col_num="$column_num" '{print $col_num }' "$data"
+                        fi
+                        ;;
+                    "Back")
+                        back_to_menu=true
+                        break
+                        ;;
+                    *)
+                        echo "Invalid option, try again."
+                        ;;
+                esac
+            done
+
+            if $back_to_menu; then
+                break
+            fi
+        fi
+    done
+done
+
