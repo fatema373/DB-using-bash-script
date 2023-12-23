@@ -1,0 +1,100 @@
+#!/bin/bash
+shopt -s extglob
+export LC_COLLATE=C
+clear
+
+# Function to validate column names
+validate_column_name() {
+    local name="$1"
+    if . newS "$name"; then
+        return 0  # Validation successful
+    else
+        return 1  # Validation failed
+    fi
+}
+
+cd "$db_directory/$name"
+
+boolean_flag=true
+while $boolean_flag; do
+    read -p "Enter the table's name: " table_name
+
+    if [ -f "data_$table_name" ]; then
+        echo "This table already exists."
+    else
+        if ! validate_column_name "$table_name"; then
+            echo "Try a valid name."
+        else
+            touch metadata_"$table_name"
+            touch data_"$table_name"
+            boolean_flag=false
+            break
+        fi
+    fi
+done
+
+if [ ! -f "tables_name" ]; then
+    touch "tables_name"
+fi
+
+echo "$table_name" >> tables_name
+
+if [ -f metadata_"$table_name" ]; then
+    # Prompt user for the number of columns
+    while true; do
+        read -p "Enter the number of columns: " num_columns
+	re='^[1-9]+$'
+        if ! [[  $num_columns =~ $re && $num_columns != "" ]]; then
+            echo "Invalid number of columns, at least one column must be inserted"
+        else
+            declare -a column_names
+            declare -a column_types
+            value=""
+
+            for ((i=1; i<=num_columns; i++)); do
+                read -p "Enter the name of column $i: " column_name
+
+                # Validate the column name
+                if ! validate_column_name "$column_name"; then
+                    echo "Invalid column name! Please enter a valid name for column $i."
+                    ((i--))  # Decrement i to re-prompt for the same column
+                    continue
+                fi
+
+                column_names+=("$column_name")
+
+                select col_type in "string" "integer"; do
+                    case $col_type in
+                        string|integer)
+                            column_types+=("$col_type")
+                            echo "Column '$column_name' of type '$col_type' added."
+                            break;;
+                        *)
+                            echo "Invalid choice! Please select 'string' or 'integer'."
+                    esac
+                done
+
+                value+="${column_name}:" 
+            done
+
+            # Create and write metadata to a file named "metadata"
+            value="${value%:}"
+            echo "Writing metadata to file..."
+            echo "$value" >> data_"$table_name"
+            value=""
+            echo "column:type" >> metadata_"$table_name"
+
+            for ((i=0; i<num_columns; i++)); do
+                if [ "$i" -eq 0 ]; then
+                    echo "${column_names[i]}(PK):${column_types[i]}" >> metadata_"$table_name"
+                else
+                    echo "${column_names[i]}:${column_types[i]}" >> metadata_"$table_name"
+                fi
+            done
+
+            echo "Metadata saved in 'metadata_$table_name' file."
+            break
+        fi
+    done
+fi
+

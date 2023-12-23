@@ -1,0 +1,35 @@
+#!/bin/bash
+
+validate_name() {
+    local name="$1"
+    #regex='^[A-Za-z]\S/*$([A-Za-z0-9_.]*[A-Za-z])?$'  
+regex='^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$'
+
+
+#^[A-Za-z][A-Za-z0-9_]*(?:_[A-Za-z0-9]+)*$
+
+  if [[ $name =~ $regex ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+correct_name(){
+local name="$1"
+#corrected_name=$(echo "$name" | sed 's/ /_/g') 
+#echo " Do you mean $corrected_name"
+
+}
+
+
+input_name="$1"  # Accepting the input name from another script
+
+if [[ $input_name == *" "* ]]; then
+    #correct_name "$input_name"
+    echo "Database name can't contain spaces"
+    return 1
+    
+else
+    validate_name "$input_name"
+fi

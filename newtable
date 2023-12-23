@@ -1,0 +1,125 @@
+#: /usr/bin/bash
+clear
+while true; do
+	
+	cd "$db_directory/$name"
+	#pwd
+	select options in "Create table" "List table" "drop table" "Insert to table" "Select table" "Delete from table" "Update table" "Drop column" "Back to previous menu"
+	do
+		#echo $options
+		case $options in
+			"Create table")
+				
+				. create
+				break
+			;;  
+			"List table")
+				
+				if [[ -f tables_name ]]; then #check if there is a file for tables_names
+					num_tables=$(wc -l < tables_name) #This line count number of tables in the database
+					if [[ $num_tables -gt 0 ]]; then #Check if there are tables in the database
+
+						cat tables_name
+					else
+						echo "No tables to be listed"
+					fi	
+				else
+					echo "No tables to be listed"
+				fi 
+								
+				break
+			;;
+
+			"drop table")
+				. droptable
+				break
+			;;
+			"Delete from table")
+				if [[ -f tables_name ]]; then 
+					num_tables=$(wc -l < tables_name)
+					if [[ $num_tables -gt 0 ]]; then
+
+						. Delete
+					else
+						echo "No tables to be listed"
+					fi	
+				else
+					echo "No tables to be listed"
+				fi 
+				
+			
+				break
+			;;
+			"Insert to table")
+				if [[ -f tables_name ]]; then 
+					num_tables=$(wc -l < tables_name)
+					if [[ $num_tables -gt 0 ]]; then
+
+						. insert
+					else
+						echo "No tables to be listed"
+					fi	
+				else
+					echo "No tables to be listed"
+				fi 
+				
+			
+				break
+			;;
+			"Select table")
+					if [[ -f tables_name ]]; then 
+						num_tables=$(wc -l < tables_name)
+						if [[ $num_tables -gt 0 ]]; then
+
+							#cat tables_name
+							. select_
+						else
+							echo "No tables to be listed"
+						fi	
+					else
+						echo "No tables to be listed"
+					fi 
+					
+				
+					break
+			;;
+
+			"Update table")
+				
+				if [[ -f tables_name ]]; then 
+					num_tables=$(wc -l < tables_name)
+					if [[ $num_tables -gt 0 ]]; then
+
+						. update
+					else
+						echo "No tables to be updated"
+					fi	
+				else
+					echo "No tables to be updated"
+				fi 
+				
+				break
+			;;
+			"Drop column")
+				if [[ -f tables_name ]]; then 
+					num_tables=$(wc -l < tables_name)
+					if [[ $num_tables -gt 0 ]]; then
+
+						
+						. drop
+					else
+						echo "No tables to drop from"
+					fi	
+				else
+					echo "No tables to drop from"
+				fi
+				break
+			;;
+
+			"Back to previous menu")
+ 				. database
+		esac
+	done 
+done
+
+
