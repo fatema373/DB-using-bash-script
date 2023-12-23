@@ -1,0 +1,67 @@
+#!/usr/bin/bash
+
+cd $db_directory/$name
+clear
+while true; do
+    awk '{print NR,"==>",$0}' tables_name
+    read -p "choose number of table to insert into " table_num
+    length=$(awk 'END { print NR }' tables_name)
+    if [[ $table_num -le $length && $table_num -gt 0 ]]; then
+	    table=$(sed -n "${table_num}p" tables_name)
+	    data="data_"
+	    meta="metadata_${table}"
+	    table="${data}${table}"
+	    first_row=$(head -n 1 "$table")
+
+	    IFS=':' read -ra columns <<<"$first_row"
+	    new_row=""
+
+	    for key in "${!columns[@]}"; do
+		while true; do
+		    read -p "'${columns[$key]}' " value
+		    if [ $key -eq 0 ]; then
+		        re='^[0-9]+$'
+		        if ! [[ $value =~ $re && $value != "" ]]; then
+		            echo "error: Not a number"
+		            continue  # Continue to the same loop (for key in "${!columns[@]}")
+		        else
+		            unique=$(grep "^$value:" "$table" | cut -d : -f 1)
+		            if [ "$unique" == "$value" ]; then
+		                echo "This ${columns[$key]} already exists"
+		                continue  # Continue to the same loop (for key in "${!columns[@]}")
+		            else
+		                value+=":"
+		                new_row+=$value
+		                break  # Break the while loop if a valid number is entered
+		            fi
+		        fi
+		    else
+		        type=$(grep "${columns[$key]}" "$meta" | cut -d : -f 2)
+		        if [[ "$type" == "integer" ]]; then
+		            if ! [[ $value =~ $re ]]; then
+		                echo "error: Not a number"
+		                continue  # Continue to the same loop (for key in "${!columns[@]}")
+		            else
+		                value+=":"
+		                new_row+=$value
+		                break  # Break the while loop if a valid number is entered
+		            fi
+		        fi
+
+		        value+=":"
+		        new_row+=$value
+		        break  # Break the while loop for non-primary key columns
+		    fi
+		done
+	    done
+
+	    length=$(echo "$new_row" | wc -c)
+	    ((last_element_index=length-1))
+	    new_row_trimmed=${new_row::-1}  # here we're eliminating the last :
+	    echo "$new_row_trimmed" | tee -a "$table"
+	    break
+	else
+		echo "Choose a valid table number"
+	fi
+done
+

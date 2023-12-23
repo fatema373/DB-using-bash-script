@@ -1,0 +1,61 @@
+#: /usr/bin/bash
+
+cd $db_directory/$name
+
+clear
+
+while true; do
+	awk '{print NR,"==>",$0}' tables_name #file contains tables' names of DB
+	read -p "choose number of table to delete from " table_num
+	table=`sed -n "${table_num}p" tables_name`
+	data="data_"
+	table="${data}${table}"
+    	select options in "All rows" "One row based on Column" "Back to previous menu"; do
+        case $options in
+            "All rows")
+                awk -F : 'NR <= 1 {print $0}' $table > trial4
+                cp trial4 "$table"
+		rm trial4
+                break
+                ;;
+            "One row based on Column")
+                first_row=$(head -n 1 "$table")
+
+                IFS=':' read -ra columns <<<"$first_row"
+
+                for key in "${!columns[@]}"; do
+                    echo "'${columns[$key]}' => press '$key'"
+                done
+
+                read -p "Enter column number: " number
+		typeset -i number2
+		((number2 =number+1))
+                if [ "$number2" -lt "${#columns[@]}" ]; then
+                    read -p "Enter value to delete from '${columns[$number]}': " value
+                    awk -F : -v number2="$number2" -v value="$value" -v OFS=: '{if ($number2 != value) print $0}' "$table" >trialfile
+		    length_trial=`awk 'END { print NR }' trialfile`
+		    rm trialfile
+		    length_table=`awk 'END { print NR }' "$table"`
+		  
+		    if [ $length_table -gt $length_trial ];then 
+		    	cp trialfile "$table"
+		    else 
+		    	echo "No such ${columns[$number]}"
+		    fi
+                    
+                    break
+                else
+                    echo "Invalid column number, please try again"
+                fi
+                ;;
+		"Back to previous menu")
+			. newtable
+		;;
+            *)
+                echo "Invalid option, please try again"
+                ;;
+        esac
+    done
+done
+
+

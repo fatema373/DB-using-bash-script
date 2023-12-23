@@ -1,0 +1,109 @@
+#: /usr/bin/bash
+
+clear
+cd
+#chmod +x create Delete displayColumns drop droptable insert metaAndData newS newS3 newtable select_  update
+PS3="What do you want to do? "
+validate_DB_name() {
+    local name="$1"
+    if . newS "$name"; then
+        return 0  # Validation successful
+    else
+        return 1  # Validation failed
+    fi
+}
+db_directory="$HOME/DB"
+
+# Check if the directory already exists
+if [ ! -d "$db_directory" ]; then
+    # Create the directory
+    mkdir -p "$db_directory"
+fi
+
+cd $db_directory
+
+while true; do
+	select options in "Create database" "Connect database" "List database" "Remove database" "exit"
+	do
+
+		case $options in
+			"Create database")
+				boolean_flag=true
+				while $boolean_flag;do
+
+					read -p "Enter database name: " name
+					if ! validate_DB_name "$name"; then #check if DB name valid
+						echo "Invalid DB name! Please enter a valid name for DB."
+					       # ((i--))  # Decrement i to re-prompt for the same column
+						continue
+					fi
+
+				
+					if [ -d $db_directory/$name ];then #check if this database exists
+						echo "This database already exists"
+
+					else 
+						boolean_flag=false
+						mkdir $db_directory/$name
+						echo "Database created successfully"
+
+					fi
+				done
+				
+				break
+				
+			;;
+			"Connect database")
+				
+				ls $db_directory
+				read -p "Enter database name: " name
+				
+
+				if [ -d $db_directory/$name ];then
+					source newtable
+					
+				else 
+					echo "No such database"
+				fi
+				
+				break
+				
+			;;
+			"List database")
+				
+				if [ -d $db_directory ];then
+					ls -p $db_directory | grep /  #list only directories
+				else 
+					echo "No databases created"
+				fi
+				
+				break		
+			;;
+			"Remove database")
+				ls $db_directory
+				read -p "Enter database name: " name
+				if [ -d $db_directory/$name ];then	
+					echo "press 'y' to remove"
+					rm -rfI $db_directory/$name
+					echo "Database removed successfully"
+					
+				else 
+					echo "No such database"
+				
+				fi
+				
+				break
+						
+			;;
+			"exit")
+				exit
+				
+			;;
+			
+			*)
+			echo "Choose a valid option"
+			
+
+		esac	
+	done
+done

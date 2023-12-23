@@ -1,0 +1,111 @@
+#!/bin/bash
+
+clear
+awk '{print NR,"==>",$0}' tables_name #file contains tables' names of DB   
+while true; do  
+    read -p "Choose the number of the table to update: " table_num #choose table number
+    length=$(awk 'END { print NR }' tables_name)
+
+    if [[ $table_num -le $length && $table_num -gt 0 ]]; then #check that this number exists
+        table=$(sed -n "${table_num}p" tables_name)
+        data="data_"
+        table="${data}${table}"
+
+        while true; do
+            select options in "Replace All" "Replace based on one column" "Back to previous menu"
+            do 
+                case $options in 
+                    "Replace All")
+                        read -p "Enter value that you want to update: " value
+			cut -d : -f 1 $table > pk #when replacing all values don't replace the PK but keep it away in another file
+			cut -d : -f 2- $table > rest_columns #and replace the rest of columns
+			    
+                        search_var=$(grep "$value" rest_columns)
+                        if [ -z "$search_var" ]; then #if this value exists
+                            echo "No records with value = $value"
+                        else
+                            read -p "Enter new value: " newvalue
+			    
+			    sed -i "s/$value/$newvalue/g" rest_columns 
+			    paste -d : pk rest_columns > $table #concatenate the new updated values with the PK
+                             echo "Value updated successfully"
+			rm pk
+			rm rest_columns
+                        fi
+			break
+                        ;;
+                    "Replace based on one column")
+                        first_row=$(head -n 1 "$table")
+                        IFS=':' read -ra columns <<<"$first_row" # get columns in an array
+
+                        for key in "${!columns[@]}"; do # display columns and their numbers to choose from
+                            echo "'${columns[$key]}' => press '$(($key+1))'"
+                        done
+
+                        while true; do
+                            read -p "Choose column number: " column_number_in_datafile
+                            ((column_number_in_array=$column_number_in_datafile-1)) #array is zero based index
+
+                            if [ -z ${columns[$column_number_in_array]} ]; then
+                                echo "Error: column number doesn't exist, please try again"
+                            else
+                                break
+                            fi
+                        done
+
+                        read -p "Enter value that you want to update: " value
+                        search_var=$(grep "$value" "$table")
+
+                        if [ -z "$search_var" ]; then
+                            echo "No ${columns[$column_number_in_array]} with value = $value"
+                        else
+                            while true; do
+                                if [[ $column_number_in_datafile -eq 1 ]]; then # check if this is the PK
+                                    read -p "Enter new value: " newvalue
+
+                                    while true; do
+                                        unique=$(grep "^$newvalue:" "$table" | cut -d : -f 1) #search for this value of PK
+                                        re='^[0-9]+$'
+
+                                        if ! [[ $newvalue =~ $re && -n $newvalue ]]; then #make sure that the PK is integer and not null
+                                            echo "Error: String and Null values are forbidden in PK"
+                                            read -p "Enter new value: " newvalue
+                                        elif [[ -n "$unique" ]]; then # make sure the PK is unique
+                                            echo "This ${columns[$column_number_in_array]} already exists. Please enter a unique value."
+                                            read -p "Enter new value: " newvalue
+                                        else
+                                            break
+                                        fi
+                                    done
+
+                                    sed -i "s/$value/$newvalue/g" "$table" # here we replace
+                                    echo "Value updated successfully"
+                                else
+                                    read -p "Enter new value: " newvalue
+                                    sed -i "s/$value/$newvalue/g" "$table" # here we replace
+                                    echo "Value updated successfully"
+                                fi
+                                break
+                            done
+                        fi
+                        break
+                        ;;
+
+
+			
+			"Back to previous menu")
+				        . newtable
+			;;
+			*)
+				        echo "Invalid option. Please choose a valid option."
+			break
+			;;
+		esac 
+
+            done
+        done
+    else 
+        echo "Choose a valid table number"
+    fi
+done
+
